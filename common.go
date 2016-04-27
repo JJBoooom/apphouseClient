@@ -2,20 +2,17 @@ package client
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-type Request interface {
-	SetHeader()
-	SetAuth()
-	DoRequest()
-}
-
 type ClientOpts struct {
-	Url       string
+	BaseUrl   string
 	AccessKey string
 	SecretKey string
 	Timeout   time.Duration
@@ -42,6 +39,108 @@ var (
 	Update = Op{Name: "UPDATE"}
 )
 
+func (c *BaseClient) newHttpClient() *http.Client {
+	return &http.Client{}
+}
+
+func (c *BaseClient) newHttpRequset() *http.Request {
+	return &http.Request{}
+}
+
+func (c *BaseClient) setHeader(r *http.Request, headers map[string]string) {
+	for k, v := range headers {
+		r.Header.Set(k, v)
+	}
+}
+
+func (c *BaseClient) doModify(method string, url string, headers map[string]string, createObject interface{}, respObject interface{}) error {
+	byteContent, err := json.Marshal(createObject)
+	if err != nil {
+		return err
+	}
+
+	client := c.newHttpClient()
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(byteContent))
+	if err != nil {
+		return nil
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		msg := fmt.Sprintf("StatusCode:%v,Status:%v", resp.StatusCode, resp.Status)
+		return errors.New(msg)
+	}
+	byteContent, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if len(byteContent) > 0 {
+		return json.Unmarshal(byteContent, respObject)
+	}
+	return nil
+}
+
+func (c *BaseClient) Post(url string, headers map[string]string, createObj interface{}, respObject interface{}) error {
+	return c.doModify("POST", url, headers, createObj, respObject)
+}
+func (c *BaseClient) Delete(url string, headers map[string]string, createObj interface{}, respObject interface{}) error {
+	return c.doModify("DELETE", url, headers, createObj, respObject)
+}
+
+func (c *BaseClient) doGet(method string, url string, headers map[string]string, respObject interface{}) error {
+
+	client := c.newHttpClient()
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		msg := fmt.Sprintf("StatusCode:%v,Status:%v", resp.StatusCode, resp.Status)
+		return errors.New(msg)
+	}
+	byteContent, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if len(byteContent) > 0 {
+		return json.Unmarshal(byteContent, respObject)
+	}
+	return nil
+}
+
+func (c *BaseClient) Get(url string, headers map[string]string, respObject interface{}) error {
+	return c.doGet("GET", url, headers, respObject)
+}
+
+/*
+func (c *BaseClient) doDelete(url string)error {
+	 client := c.newHttpClient()
+	 req, err :=
+
+}*/
+
 func NewRequest(url, op string, timeout time.Duration, body io.Reader) (*http.Request, error) {
 	if len(url) == 0 || len(op) == 0 {
 		return &http.Request{}, errors.New("invalid argument")
@@ -53,6 +152,7 @@ func NewRequest(url, op string, timeout time.Duration, body io.Reader) (*http.Re
 	return req, nil
 }
 
+/*
 func (c BaseClient) DoAction(path string, op Op) (resp *http.Response, err error) {
 	Timeout := c.Opts.Timeout
 	if Timeout == 0 {
@@ -94,3 +194,4 @@ func (c BaseClient) DoPost(path string, data []byte) (resp *http.Response, err e
 	return
 
 }
+*/

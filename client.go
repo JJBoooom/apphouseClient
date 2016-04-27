@@ -15,23 +15,28 @@ import (
 )
 
 var (
+	//用于Url和method方法名的映射
 	UrlMethodMap = make(map[string]string)
 )
 
 type ApphouseClient struct {
-	ServerIp   string
-	ServerPort string
-
-	AccessKey string
-	SecretKey string
+	BaseClient
+	Account AccountOperations
 }
 
-func NewApphouseClient(serverIp string, serverPort string) (error, *ApphouseClient) {
-	if len(serverIp) == 0 || len(serverPort) == 0 {
-		return errors.New("invalid argument"), &ApphouseClient{}
-	}
+func setupBaseClient(apphouseClient *BaseClient, opts ClientOpts) error {
+	apphouseClient.Opts.BaseUrl = opts.BaseUrl
+	apphouseClient.Opts.AccessKey = opts.AccessKey
+	apphouseClient.Opts.SecretKey = opts.SecretKey
+	return nil
+}
 
-	return nil, &ApphouseClient{}
+func NewApphouseClient(opts ClientOpts) (*ApphouseClient, error) {
+
+	c := &ApphouseClient{}
+	c.Account = newAccountClient(c)
+	setupBaseClient(&c.BaseClient, opts)
+	return c, nil
 }
 
 func parseResponse(resp *http.Response) (interface{}, error) {

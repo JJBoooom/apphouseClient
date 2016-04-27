@@ -42,6 +42,7 @@ type UserInfo struct {
 	Source   string `json:"source"`
 }
 
+/*
 type UserGroup struct {
 	Id         int    `json:"_id"`
 	GroupName  string `json:"group_name"`
@@ -49,6 +50,7 @@ type UserGroup struct {
 	CreateTime int64  `json:"create_time"`
 	Desc       string `json:"desc"`
 }
+*/
 
 type UserStats struct {
 	User       float64 `json:"user"`
